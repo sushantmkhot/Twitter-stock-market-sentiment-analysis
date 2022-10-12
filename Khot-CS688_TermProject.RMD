@@ -1,0 +1,580 @@
+---
+title: "Twitter stock market sentiment analysis"
+author: "Sushant Khot"
+
+# output: html_document
+output: 
+  html_document:
+    code_folding: hide
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+I am excited to present a project on Twitter Stock Market Sentiment Analysis for 3 Stocks that were Top Gainers and 3 Stocks that were Top Losers on Oct 14th, 2020. I have referred https://finance.yahoo.com/ to identify the top Day Gainers and Losers. 
+The idea behind the project is to identify these Top Gainer and Loser stocks on a particular day and extract the tweets using Twitter API via R. We will be doing the Twitter Social Media Sentiment Analysis of these Stocks and to extract them from Twitter, we will be using the cashtags. The cashtags easily identify the Stock symbols for these companies and the tweets / data that we will search for will be more relevant to stock market sentiments on these Gainers and Losers of the Day. 
+
+We have considered the Most Active Stock symbols in United States on the given day Oct 14th, 2020.
+
+The filters we have applied to get the below Most Active in United States Market - Top Gainers and Top Losers of the Day are as follows:
+
+1. Region = United States
+2. Market Cap (Intraday) = Mega Cap
+3. Volume (Intraday) greater than 5000000
+
+
+**Stock Filter**
+
+![](C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/StocksFilter.png)
+
+
+**Top Gainers of the Day**
+
+![](C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/TopGainers.png)
+
+
+**Top Losers of the Day**
+
+![](C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/TopLosers.png)
+
+Based on the above filter we get the below Top Gainers and Top Losers of the Day.
+
+**Largest Day Gainers: (in ascending order of gain percentages)**
+
+* **Tesla, Inc. - TSLA** - We will use **$TSLA** for our Tweet search.
+* **QUALCOMM Incorporated - QCOM** - We will use **$QCOM** for our Tweet search.
+* **Cisco Systems, Inc. - CSCO** - We will use **$CSCO** for our Tweet search.
+
+**Largest Day Losers: (in ascending order of loss percentages)**
+
+* **Wells Fargo & Company - WFC** - We will use **$WFC** for our Tweet search.
+* **Bank of America Corporation - BAC** - We will use **$BAC** for our Tweet search.
+* **T-Mobile US, Inc. - TMUS** - We will use **$TMUS** for our Tweet search.
+
+
+# Part A
+
+## Extracting Tweets
+
+**R Libraries used for Analysis**
+
+The R Libraries used for analysis are `rtweet`, `dplyr`, `tidyr`, `ggplot2`, `tidytext`, `tidyverse`, `SnowballC`, `gridExtra` and `wordcloud`.
+```{r message=FALSE, warning=FALSE}
+library(rtweet)
+library(dplyr)
+library(tidyr)
+library(tidytext)
+library(tidyverse)
+library(SnowballC)
+library(ggplot2)
+library(gridExtra) # Side by Side ggplot
+library(wordcloud)
+```
+
+
+I have stored my Twitter Authentication Tokens and Keys in a file "twitterAuthentication.Rdata". I load the "twitterAuthentication.Rdata" to Authenticate me without having me to login in Twitter from the Browser. 
+
+```{r message=FALSE, warning=FALSE}
+# save(app_name, consumer_key,consumer_secret,access_token,access_secret, file = 'C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/twitterAuthentication.Rdata')
+
+load("C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/twitterAuthentication.Rdata")
+
+```
+
+The "twitterAuthentication.Rdata" file has the R objects needed to create a token listed as follows: app_name, consumer_key, consumer_secret, access_token and access_secret.
+
+We will now create a token for Twitter Authentication and store in "token".
+
+```{r message=FALSE, warning=FALSE}
+token <- create_token(app = app_name,
+             consumer_key = consumer_key,
+             consumer_secret = consumer_secret,
+             access_token = access_token, 
+             access_secret = access_secret)
+```
+
+
+We will now extract the tweets using the cashtag searches with Twitter API via R
+
+**Top Gainers for the Day**
+
+We then search tweets for Top Gainer Stock "\$TSLA", "\$QCOM" and "\$CSCO" on Oct 14th, 2020 using the Twitter API in rtweet library - in that order
+
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+# 1. Search Tweets for Top Gainer Stock "$TSLA" on Oct 14th, 2020 -----------
+twt.topgainer.1 <- search_tweets("$TSLA", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get specific columns to Inspect
+twt.topgainer.1 <- twt.topgainer.1 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.topgainer.1)
+
+# 2. Search Tweets for Top Gainer Stock "$QCOM" on Oct 14th, 2020 -----------
+twt.topgainer.2 <- search_tweets("$QCOM", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get specific columns to Inspect
+twt.topgainer.2 <- twt.topgainer.2 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.topgainer.2)
+
+# 3. Search Tweets for Top Gainer Stock "$CSCO" on Oct 14th, 2020 -----------
+twt.topgainer.3 <- search_tweets("$CSCO", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get specific columns to Inspect
+twt.topgainer.3 <- twt.topgainer.3 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.topgainer.3)
+```
+
+
+**Top Losers for the Day**
+
+Again for Top Loser Stocks, we use the Twitter API from rtweet library and search tweets having "\$WFC", "\$BAC" and "\$TMUS" on Oct 14th, 2020 - in that order
+
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+# 1. Search Tweets for Top Loser Stock "$WFC" on Oct 14th, 2020 -----------
+twt.toploser.1 <- search_tweets("$WFC", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get specific columns to Inspect
+twt.toploser.1 <- twt.toploser.1 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.toploser.1)
+
+# 2. Search Tweets for Top Loser Stock "$BAC" on Oct 14th, 2020 -----------
+twt.toploser.2 <- search_tweets("$BAC", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get specific columns to Inspect
+twt.toploser.2 <- twt.toploser.2 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.toploser.2)
+
+# 3. Search Tweets for Top Loser Stock "$TMUS" on Oct 14th, 2020 -----------
+twt.toploser.3 <- search_tweets("$TMUS", n = 100, include_rts = FALSE, lang = "en")
+
+# Filter the tweets to get secific columns to Inspect
+twt.toploser.3 <- twt.toploser.3 %>% select(screen_name,text,created_at)
+
+# Inspect the tibble
+glimpse(twt.toploser.3)
+```
+
+
+I have stored these Top Gainers and Top Loser Tweet objects in the "TweetsFile" file. We can load this directly to see the data I was able to extract to understand the analysis done on these specific tweets.
+
+```{r message=FALSE, warning=FALSE}
+# save(twt.topgainer.1, twt.topgainer.2, twt.topgainer.3, twt.toploser.1, twt.toploser.2, twt.toploser.3, file = "C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/TweetsFile")
+
+load("C:/Users/sushk/Downloads/BU/MET CS 688/Term Project/TweetsFile")
+```
+
+
+**Glimpse of Top Gainers:**
+
+$TSLA:
+```{r message=TRUE, warning=FALSE}
+# Top Gainers of the Day
+# TSLA
+glimpse(twt.topgainer.1)
+```
+
+$QCOM:
+```{r message=TRUE, warning=FALSE}
+# QCOM
+glimpse(twt.topgainer.2)
+```
+
+$CSCO:
+```{r message=TRUE, warning=FALSE}
+# CSCO
+glimpse(twt.topgainer.3)
+```
+
+
+**Glimpse of Top Losers:**
+
+$WFC:
+```{r message=TRUE, warning=FALSE}
+# Top Losers of the Day
+# WFC
+glimpse(twt.toploser.1)
+```
+
+
+$BAC:
+```{r message=TRUE, warning=FALSE}
+# BAC
+glimpse(twt.toploser.2)
+```
+
+
+$TMUS:
+```{r message=TRUE, warning=FALSE}
+# TMUS
+glimpse(twt.toploser.3)
+```
+
+
+## Combining Data
+
+We will now combine each of the Gainers together in one data Frame and call it "twt.gainers". We will do the same for Loser Stocks and call it "twt.losers".
+
+Additionally, I am also adding a "Name" Column to the data frames in order to identify the tweets by the company names
+
+```{r message=FALSE, warning=FALSE}
+twt.topgainer.1$Name <- "Tesla" 
+twt.topgainer.2$Name <- "QUALCOMM" 
+twt.topgainer.3$Name <- "Cisco" 
+
+twt.toploser.1$Name <- "Wells Fargo" 
+twt.toploser.2$Name <- "BOA" 
+twt.toploser.3$Name <- "TMobile" 
+
+twt.gainers <- rbind(twt.topgainer.1, twt.topgainer.2, twt.topgainer.3)
+
+twt.losers <- rbind(twt.toploser.1, twt.toploser.2, twt.toploser.3)
+
+```
+
+
+**Check the combined data frames:**
+
+Gainers:
+```{r message=TRUE, warning=FALSE}
+head(twt.gainers)
+```
+
+
+Losers:
+```{r message=TRUE, warning=FALSE}
+head(twt.losers)
+```
+
+
+
+# Part B
+
+## TidyText and Pre-processing
+
+We will be using TidyText objects for Gainers and Losers stocks. As part if Pre-processing we will remove any http elements, emojis, other language contents and some othet HTML words manually.
+
+We will then use unnest_tokens() function to convert the tweets to lowercase, remove punctuation, and add id for each tweet. Also we will remove any stopwords from the tweets and store it in a cleaned data frame. Note that we are not stemming the tweets.
+
+
+```{r message=FALSE, warning=FALSE}
+
+# Remove any http elements from the tweets.
+ twt.gainers$stripped_text <- gsub("http\\S+", "", twt.gainers$text)
+
+# Remove emojis AND other elements (other languages, etc.).
+ twt.gainers$stripped_text <- gsub("[^\u0020-\u007F]+", "", twt.gainers$stripped_text)
+
+ # I noticed &amp which was not getting removed by unnest_tokens, hence removing it manually.
+ twt.gainers$stripped_text <- gsub("&amp+", "", twt.gainers$stripped_text)
+ 
+# Now we do some preprocessing on the tweets using unnest_tokens() function to convert to lowercase, remove punctuation, and add id for each tweet
+ 
+# Also we will remove any stopwords from the tweets and store it in a cleaned data frame.
+
+ # Note that we are not stemming the tweets.
+
+cleaned_twt.gainers <- twt.gainers %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text) %>%
+  anti_join(stop_words)
+
+# Now the same steps for Loser stock Tweets:
+ twt.losers$stripped_text <- gsub("http\\S+", "", twt.losers$text)
+ twt.losers$stripped_text <- gsub("[^\u0020-\u007F]+", "", twt.losers$stripped_text)
+ twt.losers$stripped_text <- gsub("&amp+", "", twt.losers$stripped_text)
+ 
+cleaned_twt.losers <- twt.losers %>%
+  select(stripped_text) %>%
+  unnest_tokens(word, stripped_text) %>%
+  anti_join(stop_words)
+```
+
+**We can look at an example of Before and After per-processing a tweet for Gainers:**
+
+Before Pre-processing:
+
+```{r message=TRUE, warning=FALSE}
+
+twt.gainers$text[50]
+```
+
+
+After Pre-processing:
+
+```{r message=TRUE, warning=FALSE}
+
+twt.gainers$stripped_text[50]
+```
+
+
+**Also we can check this for a tweet for Loser stock:**
+
+Before Pre-processing:
+
+```{r message=TRUE, warning=FALSE}
+
+twt.losers$text[50]
+```
+
+
+After Pre-processing:
+
+```{r message=TRUE, warning=FALSE}
+
+twt.losers$stripped_text[50]
+```
+
+
+We will now display the Cleaned data frame for Gainers and Losers having terms stored after pre-processing.
+
+Clean Data Frame of Gainers Tweets terms:
+
+```{r message=TRUE, warning=FALSE}
+
+cleaned_twt.gainers
+```
+
+
+Clean Data Frame of Losers Tweets terms:
+
+```{r message=TRUE, warning=FALSE}
+
+cleaned_twt.losers
+```
+
+
+# Part C
+
+## Frequent Terms
+
+Now that we have done all the pre-processing and storing the clean terms in data frame, we will show and plot the most frequent terms used in Gainer Stock Tweets and Loser Stock Tweets.
+
+**Frequent Terms in Gainers Stock tweets:**
+
+```{r message=TRUE, warning=FALSE}
+# Compute the most frequent terms for "Top Gainers" Tweets
+freq.gainers <- cleaned_twt.gainers %>% 
+  count(word, sort = TRUE) 
+head(freq.gainers)
+```
+
+Here we notice that the most frequent terms are basically the stock symbols as they arr listed most in the tweets.
+
+
+**Frequent Terms in Losers Stock tweets**
+
+```{r message=TRUE, warning=FALSE}
+# Compute the most frequent terms for "Top Losers" Tweets
+freq.losers <- cleaned_twt.losers %>% 
+  count(word, sort = TRUE) 
+head(freq.losers)
+```
+
+We see the same behavior here for Loser stock tweets and the most frequent terms are the stock symbols as they are listed most in the tweets.
+
+**Plot of Frequent Terms:**
+
+```{r message=FALSE, warning=FALSE}
+# Plot the most frequent words for "Gainers" and "Losers" tweets:
+
+plot.gainers <- cleaned_twt.gainers %>%
+  count(word, sort = TRUE) %>%
+  top_n(10) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col(fill = "seagreen") +
+  xlab(NULL) +
+  coord_flip() +
+  theme_classic() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Unique word counts found in Gainer stock tweets")
+
+plot.losers <- cleaned_twt.losers %>%
+  count(word, sort = TRUE) %>%
+  top_n(10) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col(fill = "firebrick") +
+  xlab(NULL) +
+  coord_flip() +
+  theme_classic() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Unique word counts found in Loser Stock tweets")
+
+# We will plot them side by side for comparison
+grid.arrange(plot.gainers, plot.losers, ncol=2)
+
+```
+
+
+## Word Cloud
+
+We are going to plot the top 100 terms in Gainers and Losers stock tweets. This should match with the top frequent words that we plotted above.
+
+**Gainers Word Cloud:**
+
+```{r message=TRUE, warning=FALSE}
+# Word cloud for Gainers
+wordcloud(freq.gainers$word[1:100], freq.gainers$n[1:100], colors=brewer.pal(8, "Dark2"), scale = c(4 , .1))
+```
+
+
+**Losers Word Cloud:**
+
+```{r message=TRUE, warning=FALSE}
+# Word cloud for Losers
+wordcloud(freq.losers$word[1:100], freq.losers$n[1:100], colors=brewer.pal(8, "Dark2"), scale = c(4 , .1))
+```
+
+
+# Part D
+
+## Sentiment Analysis
+
+Sentiment analysis is used for analyzing text and determining whether it conveys a positive, negative or a neutral sentiment.
+We will do the sentiment analysis of the Gainers and Losers Tweets based on the words used in the tweets. 
+Additionally, We will compute the Sentiment Score for Gainers and Losers tweets. In the end we will try to judge if the gainers tweets are characterized by more positive words and do Losers stock tweets show more negative words or  sentiments.
+
+We will be using the "bing" lexicon from the tidytext package created by Bing Liu and collaborators. The bing categorizes words as 0/1 within a positive and negative category. 
+
+We will write a R function sentiment_bing() that takes in a tweet as parameter and we process the tweet for cleanup and then calculate the sentiment score. As part of pre-processing, we will remove some HTML elements, stopwords, punctuation etc.
+After pre-processing, we will merge the tweet cleaned up words with "bing" sentiment. Additionally, we will Create a column "score", that assigns a -1 one to all negative words, and 1 to positive words. If there are no words left after clean up in a tweet then we assign a score as 0, otherwise, it is the sum of positive and negatives.
+
+There are Type 1 and Type 2 scores from the bing sentiment analysis. The Type 1 are scores assigned 0 to words which are not in the "bing" sentiment lexicon dictionary.
+While Type 2 scores are assigned to words that are present in the in the "bing" sentiment lexicon dictionary.
+
+```{r message=FALSE, warning=FALSE}
+# We will write the function sentiment_bing that takes in a tweet as parameter and we process the tweet for cleanup and then calculating the sentiment score.
+sentiment_bing = function(twt){
+  #Step 1;  perform basic text cleaning (on the tweet), as seen earlier
+  twt_tbl = tibble(text = twt) %>% 
+    mutate(
+      # Remove http elements manually
+      stripped_text = gsub("http\\S+","",text)
+    ) %>% 
+    unnest_tokens(word,stripped_text) %>% 
+    anti_join(stop_words, by="word") %>%  #remove stop words
+    inner_join(get_sentiments("bing"), by="word") %>% # merge with bing sentiment
+    count(word, sentiment, sort = TRUE) %>% 
+    ungroup() %>% 
+    ## Create a column "score", that assigns a -1 one to all negative words, and 1 to positive words. 
+    mutate(
+      score = case_when(
+        sentiment == 'negative'~ n*(-1),
+        sentiment == 'positive'~ n*1)
+    )
+  ## Calculate total score
+  sent.score = case_when(
+    nrow(twt_tbl)==0~0, # if there are no words, score is 0
+    nrow(twt_tbl)>0~sum(twt_tbl$score) #otherwise, sum the positive and negatives
+  )
+  ## This is to keep track of which tweets contained no words at all from the bing list
+  zero.type = case_when(
+    nrow(twt_tbl)==0~"Type 1", # Type 1: no words at all, zero = no
+    nrow(twt_tbl)>0~"Type 2" # Type 2: zero means sum of words = 0
+  )
+  list(score = sent.score, type = zero.type, twt_tbl = twt_tbl)
+}
+
+```
+
+We will now plot the both type 1 and type 2 score tweets. We see a lot of 0 Scores in both the plots. These include the Type 1 scores = 0. Hence to get a better picture of the sentiments, we should exclude the Type 1 scores.
+
+
+```{r message=TRUE, warning=FALSE}
+# Compare sentiment for both "Gainers" and "Losers" tweet searches
+
+# takes a minute or so
+gainers_sent = lapply(twt.gainers$text,function(x){sentiment_bing(x)})
+losers_sent = lapply(twt.losers$text,function(x){sentiment_bing(x)})
+
+
+library(purrr)
+
+stock_sentiment = bind_rows(
+  tibble(
+    StockType = 'Gainers',
+    score = unlist(map(gainers_sent,'score')),
+    type = unlist(map(gainers_sent,'type'))
+  ),
+  tibble(
+    StockType = 'Losers',
+    score = unlist(map(losers_sent,'score')),
+    type = unlist(map(losers_sent,'type'))
+  )
+)
+
+ggplot(stock_sentiment,aes(x=score, fill = StockType)) + geom_histogram(bins = 15, alpha = .6) +
+  facet_grid(~StockType) + theme_bw()
+
+stock_sentiment %>% group_by(StockType) %>% 
+  summarise(
+    Count = n(),
+    Mean = mean(score),
+    SD = sd(score),
+    max = max(score),
+    min = min(score)
+  )
+```
+
+
+Now lets excluded the Type 1 tweets (tweets with no words in the bing list) and review the plot.
+We will also prepare the five number summary of scores for both types of stock tweets. 
+
+
+```{r message=TRUE, warning=FALSE}
+
+## Now lets excluded the Type 1 tweets (tweets with no words in the bing list)
+
+ggplot(stock_sentiment %>% filter(type != "Type 1"),aes(x=score, fill = StockType)) + geom_histogram(bins = 15, alpha = .6) +
+  facet_grid(~StockType) + theme_bw()
+
+stock_sentiment %>% filter(type != "Type 1") %>% group_by(StockType) %>% 
+  summarise(
+    Count = n(),
+    Mean = mean(score),
+    SD = sd(score),
+    max = max(score),
+    min = min(score)
+  )
+```
+
+
+## Sentiments result summary
+
+**Do the results make sense?**
+
+The summary and the plot helps us understand the Type 2 tweets and the sentiments for both gainers and Losers stocks of the Day 
+
+**For Gainers of the day:**
+
+We can see that the mean score is positive -0.418. This indicates that there is still an overall negative sentiment among the tweets for these stocks. We can see this in the plot for gainers, where there are still a good number of negative tweets. In-fact there are more negative sentiments that show up in the tweets for gainers compared to Positive sentiments.
+This does not mean that the investors or the public is not happy with these stocks. It depends on how the "bing" dictionary of words have matched up with the sentiments of the people. Sometimes people use negative words to express their excitement and positive sentiments. The plot is little right skewed. So in this case, it is not very clear looking at the plots and the five number summary whether the words in tweets show more positive sentiments or negative sentiments for the Gainers. 
+
+
+**For Losers of the day:**
+
+In case of Losers stock tweets, We can clearly see a lot of negative sentiments in the plot, however surprisingly there are also a lot of positive sentiments. In come cases, we even see more positive words plotted for losers than the gainers. The mean of the scores for losers tweets is -0.13 still indicate an overall negative sentiment. However it is a lot closer to 0 and hence can be termed neutral. The plot for Loser stock tweets sentiment score is almost normally distributed with a bit more negative tweets compared to the gainers tweets. Overall, for Losers stocks as well it is not very clear if the sentiments lean towards Positive or negative by just looking at the plots but it definitely has more negative sentiments compared to gainers stock tweets sentiment score.
+
+
+# Part E
+
+## Data Visualization
+
+
